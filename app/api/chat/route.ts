@@ -129,36 +129,53 @@ export async function POST(req: NextRequest) {
  * - Formata listas e tópicos corretamente
  */
 function formatResponseText(text: string): string {
-  // Remover espaços desnecessários no início das linhas
-  let formattedText = text.replace(/^ +/gm, '');
-  
-  // Normalizar quebras de linha (não mais que duas quebras seguidas)
-  formattedText = formattedText.replace(/\n{3,}/g, '\n\n');
-  
-  // Adicionar espaço entre tópicos numerados para melhor legibilidade
-  formattedText = formattedText.replace(/(\d+\..*)\n(\d+\.)/g, '$1\n\n$2');
-  
-  // Converter tópicos numerados em negrito e incluir quebra de linha adicional
-  formattedText = formattedText.replace(/^(\d+\.)\s*(.*)/gm, '<strong class="numbered-topic" style="color:#000000; font-weight:700;">$1 $2</strong>');
-  
-  // Adicionar espaço entre perguntas e tópicos para melhor legibilidade 
-  formattedText = formattedText.replace(/([\.\?])\n([A-Za-z])/g, '$1\n\n$2');
-  
-  // Substituir ** por tags HTML de negrito
-  formattedText = formattedText.replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#000000; font-weight:600;">$1</strong>');
-  
-  // Garantir que frases importantes terminem com quebra de linha dupla
-  formattedText = formattedText.replace(/([\.\?\!])\n(?!\n)/g, '$1\n\n');
-  
-  // Padronizar marcadores de lista com espaçamento adequado
-  formattedText = formattedText.replace(/^\* /gm, '• ');
-  formattedText = formattedText.replace(/^- /gm, '• ');
-  
-  // Adicionar espaço extra antes de listas para melhor legibilidade
-  formattedText = formattedText.replace(/([^•])\n(• )/g, '$1\n\n$2');
-  
-  // Remover espaços em branco no final das linhas
-  formattedText = formattedText.replace(/\s+$/gm, '');
-  
-  return formattedText;
+  // Step 0: Trim the whole text to remove leading and trailing whitespace
+  let formattedText = text.trim();
+
+  // Step 1: Fix basic spacing and line breaks
+  formattedText = formattedText
+    // Remove extra spaces at start of lines
+    .replace(/^ +/gm, '')
+    // Fix multiple spaces
+    .replace(/ +/g, ' ')
+    // Fix emoji spacing
+    .replace(/(\w)([\u{1F300}-\u{1F9FF}])/gu, '$1 $2')
+    .replace(/([\u{1F300}-\u{1F9FF}])(\w)/gu, '$1 $2');
+
+  // Step 2: Fix numbered lists
+  formattedText = formattedText.replace(
+    /^(\d+\.)\s*(.*?)$/gm,
+    '<strong>$1</strong> $2'
+  );
+
+  // Step 3: Fix bold text
+  formattedText = formattedText.replace(
+    /\*\*(.*?)\*\*/g,
+    '<strong>$1</strong>'
+  );
+
+  // Step 4: Fix paragraph spacing
+  formattedText = formattedText
+    // Ensure proper spacing between paragraphs
+    .replace(/\n{3,}/g, '\n\n')
+    // Add space after numbered items
+    .replace(/(\d+\.\s*.*)\n(?!\n)/g, '$1\n\n')
+    // Add space after punctuation marks if followed by text
+    .replace(/([\.\?\!])\s*(?=\w)/g, '$1\n\n');
+
+  // Step 5: Fix bullet points
+  formattedText = formattedText
+    .replace(/^[•\-]\s*/gm, '• ')
+    .replace(/([^•])\n(• )/g, '$1\n\n$2');
+
+  // Step 6: Final cleanup
+  return formattedText
+    // Remove any remaining double spaces
+    .replace(/ +/g, ' ')
+    // Ensure consistent line endings
+    .replace(/\r\n/g, '\n')
+    // Remove excessive empty lines
+    .replace(/\n{3,}/g, '\n\n')
+    // Final trim to ensure no leading/trailing whitespace
+    .trim();
 } 
